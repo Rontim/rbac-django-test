@@ -14,7 +14,18 @@ class JWTAuthentication(BaseAuthentication):
         if not auth_data:
             return None
 
-        token = auth_data[7:]
+        auth_data = auth_data.split()
+
+        if len(auth_data) != 2:
+            raise exceptions.AuthenticationFailed(
+                'Your token is invalid, login')
+
+        if auth_data[0].lower() != 'bearer':
+            raise exceptions.AuthenticationFailed(
+                'Your token is invalid, login')
+
+        token = auth_data[1]
+
         try:
             payload = jwt.decode(
                 token, settings.SECRET_KEY, algorithms='HS256')

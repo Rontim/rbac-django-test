@@ -45,6 +45,9 @@ class UserLoginAPIView(APIView):
 
         user = authenticate(**authenticatation_kwargs)
 
+        if user is None:
+            return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
         access = generate_access_token(user)
         refresh = generate_refresh_token(user)
 
