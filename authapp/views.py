@@ -37,9 +37,13 @@ class UserLoginAPIView(APIView):
         if password is None:
             return Response({'error': 'Password is required'}, status=status.HTTP_400_BAD_REQUEST)
 
-        authenticate(request=request, )
+        authenticatation_kwargs = {
+            "email": email,
+            "password": password,
+            "request": request
+        }
 
-        user = get_object_or_404(User, email=email)
+        user = authenticate(**authenticatation_kwargs)
 
         access = generate_access_token(user)
         refresh = generate_refresh_token(user)
