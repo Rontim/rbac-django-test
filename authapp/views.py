@@ -1,6 +1,5 @@
 from django.contrib.auth import get_user_model
 from .serielizers import UserCreateSerializer, UserListSerializer, UserLoginSerializer
-from .utils import generate_access_token, generate_refresh_token
 from django.contrib.auth.hashers import check_password, make_password
 from rest_framework.views import APIView
 from rest_framework.generics import CreateAPIView, ListAPIView, RetrieveUpdateDestroyAPIView
@@ -29,26 +28,7 @@ class UserLoginAPIView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        email = request.data.get('email', None)
-        password = request.data.get('password', None)
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-        if email is None:
-            return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
-        if password is None:
-            return Response({'error': 'Password is required'}, status=status.HTTP_400_BAD_REQUEST)
-
-        authenticatation_kwargs = {
-            "email": email,
-            "password": password,
-            "request": request
-        }
-
-        user = authenticate(**authenticatation_kwargs)
-
-        if user is None:
-            return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
-
-        access = generate_access_token(user)
-        refresh = generate_refresh_token(user)
-
-        return Response({'access': access, 'refresh': refresh}, status=status.HTTP_200_OK)
+        return Response(serializer.validated_data, status=status.HTTP_200_OK)

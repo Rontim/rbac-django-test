@@ -1,6 +1,9 @@
+from typing import Any, Dict
 from rest_framework import serializers
-from django.contrib.auth import get_user_model
-from rest_framework.exceptions import ValidationError
+from django.contrib.auth import get_user_model, authenticate
+from .utils import generate_access_token, generate_refresh_token
+from rest_framework.exceptions import ValidationError, AuthenticationFailed
+
 
 User = get_user_model()
 
@@ -54,22 +57,45 @@ class UserLoginSerializer(serializers.ModelSerializer):
         fields = ['email', 'password']
         extra_kwargs = {'password': {'write_only': True}}
 
+    def validate(self, attrs: Dict[str, Any]) -> Dict[Any, Any]:
+        authentication_kwargs = {
+            'email': attrs.get('email'),
+            'password': attrs.get('password')
+        }
 
-# class CustomTokenPairSerializer(serializers.BaseSerializer):
-#     access = serializers.CharField()
-#     refresh = serializers.CharField()
+        try:
+            authentication_kwargs['request'] = self.context.get('request')
+        except Exception as e:
+            pass
 
-#     def to_representation(self, instance):
-#         return {
-#             'access': instance['access'],
-#             'refresh': instance['refresh']
-#         }
+        self.user = authenticate(**authentication_kwargs)
 
-#     def to_internal_value(self, data):
-#         return {
-#             'access': data['access'],
-#             'refresh': data['refresh']
-#         }
+        if self.user is None:
+            raise AuthenticationFailed('User with given credentials not found')
 
-#     def create(self, validated_data):
-#         validated_data['access'] = generate
+        data = {
+            'access': generate_access_token(self.user),
+            'refresh': generate_refresh_token(self.user)
+        }
+
+        return data
+
+
+class CustomTokenPairSerializer(serializers.BaseSerializer):
+    access = serializers.CharField()
+    refresh = serializers.CharField()
+
+    def to_representation(self, instance):
+        return {
+            'access': instance['access'],
+            'refresh': instance['refresh']
+        }
+
+    def to_internal_value(self, data):
+        return {
+            'access': data['access'],
+            'refresh': data['refresh']
+        }
+
+    # def create(self, validated_data):
+        # validated_data['access'] = generate
